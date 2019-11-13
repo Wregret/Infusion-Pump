@@ -12,7 +12,7 @@ INFUSION_DIS = (
 ),
 INFUSION_CHOKE = (
     alarm_choke -> INFUSION_CHOKE | 
-    finish -> INFUSION_IDLE
+    recover -> INFUSION_IDLE
 ),
 INFUSION_KVO = (
     alarm_kvo -> INFUSION_KVO | 
