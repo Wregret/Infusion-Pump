@@ -1,0 +1,38 @@
+// Line states: [0, 9]
+const LINE_IDLE = 1
+const LINE_DIS = 2
+const LINE_CHOKE = 3
+range RANGE_LINE = LINE_IDLE..LINE_CHOKE
+
+// Alarm states: [10, 19]
+const ALARM_SILENCE = 10
+const ALARM_CHOKE = 11
+const ALARM_LOW_BATTERY = 12
+const ALARM_BROKEN_PUMP = 13
+const ALARM_FAILURE = 14
+range RANGE_ALARM = ALARM_SILENCE..ALARM_FAILURE
+
+
+// Pump state
+
+INFUSION[l1: RANGE_LINE][l2: RANGE_LINE] = (
+    when (l1 == LINE_DIS) (
+        dispense -> INFUSION[l1][l2】 |
+        choke -> INFUSION[LINE_CHOKE][l2] |
+        idle -> INFUSION[LINE_IDLE][l2]
+    ) | 
+    when (l2 == LINE_DIS) (
+        dispense -> INFUSION[l1][l2】 |
+        choke -> INFUSION[l1][LINE_CHOKE] |
+        idle -> INFUSION[l1][LINE_IDLE]
+    ) | 
+    when (l1 == LINE_CHOKE | l2 ==  LINE_CHOKE) (
+        alarm -> ALARM[ALARM_CHOKE]
+    ) |
+    when (l1 == |)
+
+).
+
+ALARM[a: RANGE_ALARM] = (
+    // TODO:
+).
