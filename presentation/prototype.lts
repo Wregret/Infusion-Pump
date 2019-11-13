@@ -2,37 +2,43 @@
 const LINE_IDLE = 1
 const LINE_DIS = 2
 const LINE_CHOKE = 3
-range RANGE_LINE = LINE_IDLE..LINE_CHOKE
+const LINE_KVO = 4
+range RANGE_LINE = LINE_IDLE..LINE_KVO
 
 // Alarm states: [10, 19]
-const ALARM_SILENCE = 10
-const ALARM_CHOKE = 11
-const ALARM_LOW_BATTERY = 12
-const ALARM_BROKEN_PUMP = 13
-const ALARM_FAILURE = 14
-range RANGE_ALARM = ALARM_SILENCE..ALARM_FAILURE
+const ALARM_SILENT = 10
+const ALARM_INSISTENT = 11
+const ALARM_NON_INSISTENT = 12
+const ALARM_CONTINUOUS = 13
+range RANGE_ALARM = ALARM_SILENT..ALARM_CONTINUOUS
 
 
 // Pump state
-
-INFUSION[l1: RANGE_LINE][l2: RANGE_LINE] = (
-    when (l1 == LINE_DIS) (
-        dispense -> INFUSION[l1][l2】 |
-        choke -> INFUSION[LINE_CHOKE][l2] |
-        idle -> INFUSION[LINE_IDLE][l2]
-    ) | 
-    when (l2 == LINE_DIS) (
-        dispense -> INFUSION[l1][l2】 |
-        choke -> INFUSION[l1][LINE_CHOKE] |
-        idle -> INFUSION[l1][LINE_IDLE]
-    ) | 
-    when (l1 == LINE_CHOKE | l2 ==  LINE_CHOKE) (
-        alarm -> ALARM[ALARM_CHOKE]
-    ) |
-    when (l1 == |)
+INFUSION = INFUSION[LINE_DIS],
+INFUSION[l: RANGE_LINE] = (
+    when (l == LINE_DIS) d ->
+        (dispense -> INFUSION[l] |
+        choke -> INFUSION[LINE_CHOKE] |
+        idle -> INFUSION[LINE_IDLE]
+     )| 
+    when (l == LINE_CHOKE)
+        alarm_choke -> ALARM[ALARM_INSISTENT]
+    |
+   when (l == LINE_KVO)
+        alarm_kvo -> ALARM[ALARM_NON_INSISTENT]
+    |
+    when (l == LINE_IDLE)
+        idle -> INFUSION[LINE_IDLE]
 
 ).
 
+|| LINES = (l1: INFUSION || l2 : INFUSION).
+
+ALARM = ALARM[ALARM_SILENT],
 ALARM[a: RANGE_ALARM] = (
     // TODO:
+    when (a == ALARM_INSISTENT) ring ->
+        (silence_alarm -> INFUSION[LINE_DIS] |
+            insistent_alarm_ring -> ALARM[]
+    silent -> ALARM[ALARM_SLIENT]
 ).
