@@ -1,0 +1,13 @@
+const Dispensing = 1
+const Ready = 2
+range State = Dispensing..Ready
+
+LINE1 = INFUSION[Ready],
+INFUSION[i:State] = (despense1 -> INFUSION[Dispensing]
+           |done -> INFUSION[Ready]).
+
+LINE2 = INFUSION[Ready],
+INFUSION[i:State] = (despense2 -> INFUSION[Dispensing]
+           |done -> INFUSION[Ready]).
+
+||CONC = (LINE1 || LINE2).
