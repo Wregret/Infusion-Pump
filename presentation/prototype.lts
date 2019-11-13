@@ -1,37 +1,4 @@
-// // Line states: [0, 9]
-// const LINE_IDLE = 1
-// const LINE_DIS = 2
-// const LINE_CHOKE = 3
-// const LINE_KVO = 4
-// range RANGE_LINE = LINE_IDLE..LINE_KVO
-
-// // Alarm states: [10, 19]
-// const ALARM_SILENT = 10
-// const ALARM_INSISTENT = 11
-// const ALARM_NON_INSISTENT = 12
-// const ALARM_CONTINUOUS = 13
-// range RANGE_ALARM = ALARM_SILENT..ALARM_CONTINUOUS
-
-
-
-// Pump state
-// INFUSION = INFUSION[LINE_IDLE],
-// INFUSION[l: RANGE_LINE] = (
-//     when (l == LINE_DIS) dispense -> INFUSION[LINE_DIS] |
-//     when (l == LINE_DIS) choke -> INFUSION[LINE_CHOKE] |
-//     when (l == LINE_DIS) idle -> INFUSION[LINE_IDLE] |
-//     when (l == LINE_DIS) kvo -> INFUSION[LINE_KVO]
-//     | 
-//     when (l == LINE_CHOKE) alarm_choke -> INFUSION[LINE_CHOKE]|
-// 	when (l == LINE_CHOKE) recover -> INFUSION[LINE_DIS]
-//     |
-//     when (l == LINE_KVO) alarm_kvo -> INFUSION[LINE_KVO] |
-//     when (l == LINE_KVO) finish -> INFUSION[LINE_IDLE]
-//     |
-//     when (l == LINE_IDLE) idle -> INFUSION[LINE_IDLE]|
-//     when (l == LINE_IDLE) dispense -> INFUSION[LINE_DIS]
-// ).
-
+// Infusion line
 INFUSION = INFUSION_IDLE,
 INFUSION_IDLE = (
     idle -> INFUSION_IDLE | 
@@ -52,7 +19,7 @@ INFUSION_KVO = (
     finish -> INFUSION_IDLE
 ).
 
-
+// Alarm
 ALARM = ALARM_SILENT,
 ALARM_INSISTENT = (recover -> ALARM_SILENT),
 ALARM_NON_INSISTENT = (finish -> ALARM_SILENT),
@@ -61,5 +28,6 @@ ALARM_SILENT = (
     alarm_kvo -> ALARM_NON_INSISTENT
 ).
 
+// Infusion pump with 2 lines which share an alarm
 || LINES = (l1:INFUSION || l2:INFUSION || {l1, l2}::ALARM).
 
