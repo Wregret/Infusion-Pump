@@ -40,7 +40,7 @@ menu PumpMenu = {
 }
 
 // Pump state
-INFUSION = UNPLUGGED,
+INFUSION_LINE = UNPLUGGED,
 UNPLUGGED = (plug -> POWER_OFF),
 POWER_OFF = (turn_on -> INFUSION[LINE_IDLE] | power_out -> UNPLUGGED),
 INFUSION[l: RANGE_LINE] = (
@@ -72,7 +72,7 @@ ALARM[a: RANGE_ALARM] = (
     when(a == ALARM_SILENT) alarm_kvo -> ALARM[ALARM_NON_INSISTENT] |
     when(a == ALARM_SILENT) alarm_battery -> ALARM[ALARM_NON_INSISTENT]
     |
-    when (a == ALARM_NON_INSISTENT) ring_once -> ALARM[ALARM_SILENT]
+    when (a == ALARM_NON_INSISTENT) ring_once -> silent -> ALARM[ALARM_SILENT]
     |
     power_out -> UNPLUGGED
 ).
@@ -104,7 +104,7 @@ POWER[p: RANGE_POWER][b: RANGE_BATTERY] = (
     when (p == POWER_BATTERY) power_out -> POWER[POWER_OFF][BATTERY_FAILED]
 ).
 
-|| LINES = (l1: INFUSION || l2 : INFUSION || {l1, l2}::ALARM || {l1, l2} :: CONTROL_PANEL || POWER)
+|| LINES = (l1: INFUSION_LINE || l2 : INFUSION_LINE || {l1, l2}::ALARM || {l1, l2} :: CONTROL_PANEL || POWER)
 /{pause/l1.pause, pause/l2.pause, continue/l1.continue, continue/l2.continue,
 lock_control_panel/l1.lock_control_panel, lock_control_panel/l2.lock_control_panel,
 unlock_control_panel/l1.unlock_control_panel, unlock_control_panel/l2.unlock_control_panel,
@@ -147,10 +147,22 @@ assert RESUME = []((PUMP_FAILURE_1 -> <>PUMP_RECOVER_1) && (PUMP_FAILURE_2 -> <>
 // copy PUMP_FAILURE_1 and PUMP_FAILURE_2 from above
 //assert ALARM_WILL_SOUND = []
 
-// Propert A: If we switch to battery then non_insistent alarm will sound
+// In the absence of errors the pump will continue to pump until the treatment is finished.
+fluent PUMPING = <{l1.start_dispensing}, {l1.kvo}>
+fluent PUMP_ERROR = <{power_out, l1.choke}, {plug, recover}>
+fluent KVO_REACHED = <{l1.kvo}, {l1.start_dispensing}>
+
+assert PUMP_UNTIL_NO_ERROR = (! PUMP_ERROR -> (PUMPING U KVO_REACHED))
+
+// Property A: If we switch to battery then non_insistent alarm will sound
 fluent RUN_ON_BATTERY = <{unplug}, {plug, power_out}>
-fluent NON_INSISTENT_ALARM_SOUND = <{l1.ring_once, l2.ring_once}>
-assert BATTERY_ALARM = [](RUN_ON_BATTERY -> (<> NON_INSISTENT_ALARM_SOUND))
+fluent ALARM_ONCE = <{ring_once},{silent}>
+assert BATTERY_ALARM = [](RUN_ON_BATTERY -> (<> ALARM_ONCE))
+
+//Property B: If the control panel is locked then no line cannot be terminated
+fluent LOCKED_PANEL = <{lock_control_panel},{unlock_control_panel}>
+fluent PANEL_ACTIONS = <{l1.terminate, l2.terminate},{l1.kvo, l2.kvo}>
+assert NO_ACTION_LOCKED = [](LOCKED_PANEL -> <> ! PANEL_ACTIONS)
 
 
 
