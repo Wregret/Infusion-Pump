@@ -1,10 +1,11 @@
 // Line states: [0, 9]
 const LINE_IDLE = 1
 const LINE_DIS = 2
-const LINE_CHOKE = 3
+const LINE_DIS_CHOKE = 3
 const LINE_KVO = 4
 const LINE_PAUSE = 5
-range RANGE_LINE = LINE_IDLE..LINE_PAUSE
+const LINE_KVO_CHOKE = 6
+range RANGE_LINE = LINE_IDLE..LINE_KVO_CHOKE
 
 // Alarm states: [10, 19]
 const ALARM_SILENT = 10
@@ -12,7 +13,6 @@ const ALARM_INSISTENT = 11
 const ALARM_NON_INSISTENT = 12
 const ALARM_CONTINUOUS = 13
 range RANGE_ALARM = ALARM_SILENT..ALARM_CONTINUOUS
-
 
 // Control Panel States: [40, 49]
 const CONTROL_PAUSE = 41
@@ -24,43 +24,47 @@ const CONTROL_TERMINATE = 46
 const CONTROL_CONFIRM_SETTING = 47
 range RANGE_CONTROL_PANEL = CONTROL_PAUSE..CONTROL_CONFIRM_SETTING
 
+// Number of lines
+const N = 2
+
+
 
 // Pump state
 INFUSION = INFUSION[LINE_IDLE],
 INFUSION[l: RANGE_LINE] = (
-    when (l == LINE_DIS) dispense -> INFUSION[LINE_DIS] |
+    //when (l == LINE_DIS) dispense -> INFUSION[LINE_DIS] |
 	//when (l == LINE_DIS) continue -> INFUSION[LINE_DIS] |
-    when (l == LINE_DIS) choke -> INFUSION[LINE_CHOKE] |
-    when (l == LINE_DIS) idle -> INFUSION[LINE_IDLE] |
-    when (l == LINE_DIS) kvo -> INFUSION[LINE_KVO] |
+    when (l == LINE_DIS) choke -> alarm_choke -> INFUSION[LINE_DIS_CHOKE] |
+    when (l == LINE_DIS) kvo -> alarm_kvo -> INFUSION[LINE_KVO] |
 	when (l == LINE_DIS) pause -> INFUSION[LINE_PAUSE] 
     |
-    when (l == LINE_CHOKE) alarm_choke -> INFUSION[LINE_CHOKE]|
-	when (l == LINE_CHOKE) recover -> INFUSION[LINE_DIS]
+    //when (l == LINE_DIS_CHOKE) alarm_choke -> INFUSION[LINE_DIS_CHOKE]|
+	//when (l == LINE_KVO_CHOKE) alarm_choke -> INFUSION[LINE_KVO_CHOKE]|
+	when (l == LINE_DIS_CHOKE) recover -> INFUSION[LINE_DIS]|
+	when (l == LINE_KVO_CHOKE) recover -> INFUSION[LINE_KVO]
     |
-    when (l == LINE_KVO) alarm_kvo -> INFUSION[LINE_KVO]|
-    when (l == LINE_KVO) finish -> INFUSION[LINE_IDLE]
+    when (l == LINE_KVO) pause -> INFUSION[LINE_PAUSE]|
+	when (l == LINE_KVO) choke -> alarm_choke -> INFUSION[LINE_KVO_CHOKE]
     |
-    when (l == LINE_IDLE) idle -> INFUSION[LINE_IDLE]|
-    when (l == LINE_IDLE) dispense -> INFUSION[LINE_DIS]|
 	when (l == LINE_IDLE) pause -> INFUSION[LINE_IDLE] |
-	when (l == LINE_IDLE) continue -> INFUSION[LINE_IDLE]
+	when (l == LINE_IDLE) continue -> INFUSION[LINE_IDLE]|
+    when (l == LINE_IDLE) start -> setting_confirned -> start_dispensing -> INFUSION[LINE_DIS]
 	|
-	when (l == LINE_PAUSE) continue -> INFUSION[LINE_DIS]
-	
+	when (l == LINE_PAUSE) continue -> INFUSION[LINE_DIS]|
+	when (l == LINE_PAUSE) terminate_dispensing -> INFUSION[LINE_IDLE]
 ).
+
 
 ALARM = ALARM[ALARM_SILENT],
 ALARM[a: RANGE_ALARM] = (
     // TODO:
     when(a == ALARM_INSISTENT) recover -> ALARM[ALARM_SILENT]|
-    when(a == ALARM_INSISTENT) insistent_alarm -> ALARM[ALARM_INSISTENT]
+    when(a == ALARM_INSISTENT) ring_continuously -> ALARM[ALARM_INSISTENT]
     |
     when(a == ALARM_SILENT) alarm_choke -> ALARM[ALARM_INSISTENT] |
     when(a == ALARM_SILENT) alarm_kvo -> ALARM[ALARM_NON_INSISTENT]
     |
-    when (a == ALARM_NON_INSISTENT) finish -> ALARM[ALARM_SILENT] |
-    when (a == ALARM_NON_INSISTENT) non_insistent_alarm -> ALARM[ALARM_NON_INSISTENT]
+    when (a == ALARM_NON_INSISTENT) ring_once -> ALARM[ALARM_SILENT]
 ).
 
 CONTROL_PANEL = CONTROL_PANEL[CONTROL_UNLOCK],
@@ -70,11 +74,13 @@ CONTROL_PANEL[c: RANGE_CONTROL_PANEL] = (
     |
     when (c == CONTROL_UNLOCK) lock_control_panel -> CONTROL_PANEL[CONTROL_LOCK]|
     when (c == CONTROL_UNLOCK) pause -> CONTROL_PANEL[CONTROL_UNLOCK]|
-    when (c == CONTROL_UNLOCK) continue -> CONTROL_PANEL[CONTROL_UNLOCK]
+    when (c == CONTROL_UNLOCK) continue -> CONTROL_PANEL[CONTROL_UNLOCK]|
+	when (c == CONTROL_UNLOCK) start -> CONTROL_PANEL[CONTROL_UNLOCK]|
+	when (c == CONTROL_UNLOCK) terminate_dispensing -> CONTROL_PANEL[CONTROL_UNLOCK]
+
 ).
 
 || LINES = (l1: INFUSION || l2 : INFUSION || {l1, l2}::ALARM || {l1, l2} :: CONTROL_PANEL)
 /{pause/l1.pause, pause/l2.pause, continue/l1.continue, continue/l2.continue,
 lock_control_panel/l1.lock_control_panel, lock_control_panel/l2.lock_control_panel,
 unlock_control_panel/l1.unlock_control_panel, unlock_control_panel/l2.unlock_control_panel}.
-
