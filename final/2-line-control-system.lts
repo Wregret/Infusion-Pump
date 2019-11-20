@@ -44,8 +44,6 @@ INFUSION = UNPLUGGED,
 UNPLUGGED = (plug -> POWER_OFF),
 POWER_OFF = (turn_on -> INFUSION[LINE_IDLE] | power_out -> UNPLUGGED),
 INFUSION[l: RANGE_LINE] = (
-    //when (l == LINE_DIS) dispense -> INFUSION[LINE_DIS] |
-	//when (l == LINE_DIS) continue -> INFUSION[LINE_DIS] |
     when (l == LINE_DIS) choke -> alarm_choke -> INFUSION[LINE_DIS_CHOKE] |
     when (l == LINE_DIS) kvo -> alarm_kvo -> INFUSION[LINE_KVO] |
     when (l == LINE_DIS) terminate -> INFUSION[LINE_IDLE]
@@ -66,7 +64,7 @@ ALARM = UNPLUGGED,
 UNPLUGGED = (plug -> POWER_OFF),
 POWER_OFF = (turn_on -> ALARM[ALARM_SILENT] | power_out -> UNPLUGGED),
 ALARM[a: RANGE_ALARM] = (
-    // TODO:
+
     when(a == ALARM_INSISTENT) recover -> ALARM[ALARM_SILENT]|
     when(a == ALARM_INSISTENT) ring_continuously -> ALARM[ALARM_INSISTENT]
     |
