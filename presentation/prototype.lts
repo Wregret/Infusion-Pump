@@ -8,7 +8,8 @@ INFUSION_DIS = (
     dispense -> INFUSION_DIS | 
     choke -> INFUSION_CHOKE | 
     idle -> INFUSION_IDLE | 
-    kvo -> INFUSION_KVO
+    kvo -> INFUSION_KVO | 
+    pause -> INFUSION_PAUSE
 ),
 INFUSION_CHOKE = (
     alarm_choke -> INFUSION_CHOKE | 
@@ -17,7 +18,8 @@ INFUSION_CHOKE = (
 INFUSION_KVO = (
     alarm_kvo -> INFUSION_KVO | 
     finish -> INFUSION_IDLE
-).
+),
+INFUSION_PAUSE = (continue -> INFUSION_DIS).
 
 // Alarm
 ALARM = ALARM_SILENT,
@@ -28,6 +30,24 @@ ALARM_SILENT = (
     alarm_kvo -> ALARM_NON_INSISTENT
 ).
 
+// Pause
+const STATE_PAUSE = 1
+const STATE_CONTINUE = 2
+range RANGE_PAUSE = STATE_PAUSE..STATE_CONTINUE
+
+// PAUSE = (pause -> CONTINUE),
+// CONTINUE = (continue -> PAUSE).
+
+PAUSE = PAUSE[STATE_CONTINUE],
+PAUSE[p: RANGE_PAUSE] = (
+    when(p == STATE_PAUSE)
+        continue -> PAUSE[STATE_CONTINUE] |
+    when(p == STATE_CONTINUE)
+        pause -> PAUSE[STATE_PAUSE]
+).
+
 // Infusion pump with 2 lines which share an alarm
-|| LINES = (l1:INFUSION || l2:INFUSION || {l1, l2}::ALARM).
+|| PUMP = (l1:INFUSION || l2:INFUSION || {l1, l2}::ALARM || {l1, l2}::PAUSE)
+    \{l1.pause, l2.pause, l1.continue, l2.continue}.
+    // /{pause/l1.pause, pause/l2.pause, continue/l1.continue, continue/l2.continue}.
 
