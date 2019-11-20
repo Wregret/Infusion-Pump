@@ -112,3 +112,53 @@ plug/l1.plug, plug/l2.plug, turn_on/l1.turn_on, turn_on/l2.turn_on,
 unplug/l1.unplug, unplug/l2.unplug, alarm_battery/l1.alarm_battery, 
 alarm_battery/l2.alarm_battery, power_out/l1.power_out, power_out/l2.power_out,
 power_out/l1.power_out, power_out/l2.power_out, plug_back/l1.plug_back, plug_back/l2.plug_back}.
+
+// Assertion
+
+const True = 1
+const False = 0
+
+// The pump cannot start pumping without the operator first confirming the settings on the pump.
+fluent SETTING_CONFIRM_1 = <{l1.setting_confirmed}, {l1.terminate}>
+assert CONFIRM_BEFORE_START_1 = (l1.start_dispensing -> SETTING_CONFIRM_1)
+
+fluent SETTING_CONFIRM_2 = <{l2.setting_confirmed}, {l2.terminate}>
+assert CONFIRM_BEFORE_START_2 = (l2.start_dispensing -> SETTING_CONFIRM_2)
+
+// Electrical power can fail infinitely often.
+fluent POWER_FAILED = <{unplug}, {plug, plug_back}>
+assert POWER_FAIL = []<>POWER_FAILED
+
+// If the backup battery power fails, pumping will not occur on any line.
+fluent BACK_UP_BATTERY_FAILED = <{power_out}, {plug, plug_back}>
+fluent LINE_PUMPING_1 =<{l1.start_dispensing}, {l1.terminate}>
+fluent LINE_PUMPING_2 = <{l2.start_dispensing}, {l2.terminate}>
+assert NO_PUMPING_WHEN_BATTERY_FAILED = (BACK_UP_BATTERY_FAILED -> (X []!(LINE_PUMPING_1 || LINE_PUMPING_2)))
+
+// It is always possible to resume pumping after a failure.
+fluent PUMP_FAILURE_1 = <{l1.choke}, {l1.recover}>
+fluent PUMP_FAILURE_2 = <{l2.choke}, {l2.recover}>
+fluent PUMP_RECOVER_1 = <{l1.recover}, {l1.terminate}>
+fluent PUMP_RECOVER_2 = <{l2.recover}, {l2.terminate}>
+assert RESUME = []((PUMP_FAILURE_1 -> <>PUMP_RECOVER_1) && (PUMP_FAILURE_2 -> <>PUMP_RECOVER_2))
+
+// An alarm will sound on any line failure (blockage, pinching, empty fluid, or whatever failures you model).
+//fluent ALARM_SOUND = <{l1.alarm_choke,l2.alarm_choke}, {l1.recover, l2.recover}>
+// copy PUMP_FAILURE_1 and PUMP_FAILURE_2 from above
+//assert ALARM_WILL_SOUND = []
+
+// Propert A: If we switch to battery then non_insistent alarm will sound
+fluent RUN_ON_BATTERY = <{unplug}, {plug, power_out}>
+fluent NON_INSISTENT_ALARM_SOUND = <{l1.ring_once, l2.ring_once}>
+assert BATTERY_ALARM = [](RUN_ON_BATTERY -> (<> NON_INSISTENT_ALARM_SOUND))
+
+
+
+
+
+
+
+
+
+
+
