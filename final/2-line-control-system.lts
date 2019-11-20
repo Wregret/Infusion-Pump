@@ -14,10 +14,15 @@ const ALARM_CONTINUOUS = 13
 range RANGE_ALARM = ALARM_SILENT..ALARM_CONTINUOUS
 
 
-// Control Panel States:
-const CONTROL_PAUSE = 21
-const CONTROL_CONTINUE = 22
-range RANGE_CONTROL_PANEL = CONTROL_PAUSE..CONTROL_CONTINUE
+// Control Panel States: [40, 49]
+const CONTROL_PAUSE = 41
+const CONTROL_CONTINUE = 42
+const CONTROL_LOCK = 43
+const CONTROL_UNLOCK = 44
+const CONTROL_START = 45
+const CONTROL_TERMINATE = 46
+const CONTROL_CONFIRM_SETTING = 47
+range RANGE_CONTROL_PANEL = CONTROL_PAUSE..CONTROL_CONFIRM_SETTING
 
 
 // Pump state
@@ -58,11 +63,18 @@ ALARM[a: RANGE_ALARM] = (
     when (a == ALARM_NON_INSISTENT) non_insistent_alarm -> ALARM[ALARM_NON_INSISTENT]
 ).
 
-CONTROL_PANEL = CONTROL_PANEL[CONTROL_CONTINUE],
+CONTROL_PANEL = CONTROL_PANEL[CONTROL_UNLOCK],
 
 CONTROL_PANEL[c: RANGE_CONTROL_PANEL] = (
-    
+    when (c == CONTROL_LOCK) unlock_control_panel -> CONTROL_PANEL[CONTROL_UNLOCK]
+    |
+    when (c == CONTROL_UNLOCK) lock_control_panel -> CONTROL_PANEL[CONTROL_LOCK]|
+    when (c == CONTROL_UNLOCK) pause -> CONTROL_PANEL[CONTROL_UNLOCK]|
+    when (c == CONTROL_UNLOCK) continue -> CONTROL_PANEL[CONTROL_UNLOCK]
 ).
 
-|| LINES = (l1: INFUSION || l2 : INFUSION || {l1, l2}::ALARM)/{pause/l1.pause, pause/l2.pause, continue/l1.continue, continue/l2.continue}.
+|| LINES = (l1: INFUSION || l2 : INFUSION || {l1, l2}::ALARM || {l1, l2} :: CONTROL_PANEL)
+/{pause/l1.pause, pause/l2.pause, continue/l1.continue, continue/l2.continue,
+lock_control_panel/l1.lock_control_panel, lock_control_panel/l2.lock_control_panel,
+unlock_control_panel/l1.unlock_control_panel, unlock_control_panel/l2.unlock_control_panel}.
 
