@@ -36,22 +36,15 @@ INFUSION[l: RANGE_LINE] = (
 	//when (l == LINE_DIS) continue -> INFUSION[LINE_DIS] |
     when (l == LINE_DIS) choke -> alarm_choke -> INFUSION[LINE_DIS_CHOKE] |
     when (l == LINE_DIS) kvo -> alarm_kvo -> INFUSION[LINE_KVO] |
-	when (l == LINE_DIS) pause -> INFUSION[LINE_PAUSE] 
+    when (l == LINE_DIS) terminate -> INFUSION[LINE_IDLE]
     |
-    //when (l == LINE_DIS_CHOKE) alarm_choke -> INFUSION[LINE_DIS_CHOKE]|
-	//when (l == LINE_KVO_CHOKE) alarm_choke -> INFUSION[LINE_KVO_CHOKE]|
 	when (l == LINE_DIS_CHOKE) recover -> INFUSION[LINE_DIS]|
 	when (l == LINE_KVO_CHOKE) recover -> INFUSION[LINE_KVO]
     |
-    when (l == LINE_KVO) pause -> INFUSION[LINE_PAUSE]|
-	when (l == LINE_KVO) choke -> alarm_choke -> INFUSION[LINE_KVO_CHOKE]
+	when (l == LINE_KVO) choke -> alarm_choke -> INFUSION[LINE_KVO_CHOKE] |
+    when (l == LINE_KVO) terminate -> INFUSION[LINE_IDLE]
     |
-	when (l == LINE_IDLE) pause -> INFUSION[LINE_IDLE] |
-	when (l == LINE_IDLE) continue -> INFUSION[LINE_IDLE]|
     when (l == LINE_IDLE) start -> setting_confirned -> start_dispensing -> INFUSION[LINE_DIS]
-	|
-	when (l == LINE_PAUSE) continue -> INFUSION[LINE_DIS]|
-	when (l == LINE_PAUSE) terminate_dispensing -> INFUSION[LINE_IDLE]
 ).
 
 
@@ -73,10 +66,8 @@ CONTROL_PANEL[c: RANGE_CONTROL_PANEL] = (
     when (c == CONTROL_LOCK) unlock_control_panel -> CONTROL_PANEL[CONTROL_UNLOCK]
     |
     when (c == CONTROL_UNLOCK) lock_control_panel -> CONTROL_PANEL[CONTROL_LOCK]|
-    when (c == CONTROL_UNLOCK) pause -> CONTROL_PANEL[CONTROL_UNLOCK]|
-    when (c == CONTROL_UNLOCK) continue -> CONTROL_PANEL[CONTROL_UNLOCK]|
 	when (c == CONTROL_UNLOCK) start -> CONTROL_PANEL[CONTROL_UNLOCK]|
-	when (c == CONTROL_UNLOCK) terminate_dispensing -> CONTROL_PANEL[CONTROL_UNLOCK]
+	when (c == CONTROL_UNLOCK) terminate -> CONTROL_PANEL[CONTROL_UNLOCK]
 
 ).
 
