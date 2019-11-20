@@ -13,7 +13,16 @@ const ALARM_NON_INSISTENT = 12
 const ALARM_CONTINUOUS = 13
 range RANGE_ALARM = ALARM_SILENT..ALARM_CONTINUOUS
 
+// Power state: [20, 29]
+const POWER_PRIMARY = 20
+const POWER_BATTERY = 21
+const POWER_OFF = 22
+range RANGE_POWER = POWER_PRIMARY..POWER_OFF
 
+// Battery state: [30, 39]
+const BATTERY_CHARGED = 30
+const BATTERY_FAILED = 31
+range RANGE_BATTERY = BATTERY_CHARGED..BATTERY_FAILED
 
 // Pump state
 INFUSION = INFUSION[LINE_IDLE],
@@ -37,9 +46,9 @@ INFUSION[l: RANGE_LINE] = (
 	when (l == LINE_IDLE) continue -> INFUSION[LINE_IDLE]
 	|
 	when (l == LINE_PAUSE) continue -> INFUSION[LINE_DIS]
-	
 ).
 
+// Alarm
 ALARM = ALARM[ALARM_SILENT],
 ALARM[a: RANGE_ALARM] = (
     // TODO:
@@ -47,11 +56,30 @@ ALARM[a: RANGE_ALARM] = (
     when(a == ALARM_INSISTENT) insistent_alarm -> ALARM[ALARM_INSISTENT]
     |
     when(a == ALARM_SILENT) alarm_choke -> ALARM[ALARM_INSISTENT] |
-    when(a == ALARM_SILENT) alarm_kvo -> ALARM[ALARM_NON_INSISTENT]
+    when(a == ALARM_SILENT) alarm_kvo -> ALARM[ALARM_NON_INSISTENT] |
+    when(a == ALARM_SILENT) alarm_battery -> ALARM[ALARM_NON_INSISTENT]
     |
     when (a == ALARM_NON_INSISTENT) finish -> ALARM[ALARM_SILENT] |
     when (a == ALARM_NON_INSISTENT) non_insistent_alarm -> ALARM[ALARM_NON_INSISTENT]
 ).
 
-|| LINES = (l1: INFUSION || l2 : INFUSION || {l1, l2}::ALARM)/{pause/l1.pause, pause/l2.pause, continue/l1.continue, continue/l2.continue}.
+// Power
+POWER = POWER[POWER_OFF][BATTERY_CHARGED],
+POWER[p: RANGE_POWER][b: RANGE_BATTERY] = (
+    when (p == POWER_OFF) plug_in -> POWER[POWER_PRIMARY][b]
+    |
+    when (p == POWER_PRIMARY) charge_battery -> POWER[POWER_PRIMARY][BATTERY_CHARGED] |
+	when (p == POWER_PRIMARY) plug_out -> (
+        when (b == BATTERY_CHARGED) alarm_battery -> POWER[POWER_BATTERY][b]|
+        when (b == BATTERY_FAILED) power_out -> POWER[POWER_OFF][b]
+    )
+    |
+    when (p == POWER_BATTERY) plug_in -> POWER[POWER_PRIMARY][b] |
+    when (p == POWER_BATTERY) power_out -> POWER[POWER_OFF][BATTERY_FAILED]
+).
+
+
+// Composition
+|| PUMP = (l1: INFUSION || l2 : INFUSION || {l1, l2}::ALARM || POWER)
+    /{pause/l1.pause, pause/l2.pause, continue/l1.continue, continue/l2.continue}.
 
